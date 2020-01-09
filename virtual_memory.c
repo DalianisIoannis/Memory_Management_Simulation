@@ -45,7 +45,7 @@ int virtual_memory(const int frames){
     // // // // // // // // // // // // // // // read file lines
     // // // // // // // // // // // // // // // // // // // // // // // // //
     j = 0;
-    while( read = getline( &line, &len, file1 ) != -1 && j<5 ){
+    while( read = getline( &line, &len, file1 ) != -1 && j<10 ){
         printf("file line is %s", line);
 
         token = strtok(line, " \t");   // address
@@ -68,18 +68,30 @@ int virtual_memory(const int frames){
 
         (*adr)->op = malloc( (strlen(pageMod)+1) * sizeof(char) );
         strcpy( (*adr)->op, pageMod );
-
-        // for(i=0; i<frames; i++){
-        //     if(InvTable->Addresses[i]->isEmpty == 1){
-        //         InvTable->Addresses[i]->isEmpty = 0;
-        //         InvTable->Addresses[i] = adr;
-        //     }
+        i = 0;
+        while(i < frames){
+            if(InvTable->Addresses[i]->isEmpty == 1){
+                break;
+            }
+            i++;
+        }
+        // if(j==0){
+        //     free(InvTable->Addresses[0]);
+        //     (InvTable->Addresses[0]) = (*adr);
+        //     // printf("MPIKE Entrance has pageNum %d\n", InvTable->Addresses[0]->pageNumber);
+        //     InvTable->Addresses[0]->isEmpty = 0;
+        //     free(adr);
         // }
-        if(j==0){
-            free(InvTable->Addresses[0]);
-            (InvTable->Addresses[0]) = (*adr);
+        // else{
+        //     free( (*adr)->op );
+        //     free( (*adr) );
+        //     free(adr);
+        // }
+        if(i<frames){
+            free(InvTable->Addresses[i]);
+            (InvTable->Addresses[i]) = (*adr);
             // printf("MPIKE Entrance has pageNum %d\n", InvTable->Addresses[0]->pageNumber);
-            InvTable->Addresses[0]->isEmpty = 0;
+            InvTable->Addresses[i]->isEmpty = 0;
             free(adr);
         }
         else{
