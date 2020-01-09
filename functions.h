@@ -2,10 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FRAMESIZE 4096
+
 typedef struct mem_addr{
     int processId;
     int pageNumber;
-
+    int isEmpty;
+    int dirty;  // bool
+    char* op;   // W or R
 } Address;
 
-int virtual_memory(int frames);
+typedef struct InvertedPageTable{
+    int frames;
+    Address** Addresses;
+} IPT;
+
+int virtual_memory(const int frames);
