@@ -5,11 +5,12 @@
 #define FRAMESIZE 4096
 
 typedef struct mem_addr{
-    int processId;
-    int pageNumber;
-    int isEmpty;
-    int dirty;  // bool
-    char* op;   // W or R
+    long    serial_number;  // how early did it enter. The smallest num is the earliest
+    int     processId;
+    int     pageNumber;
+    int     isEmpty;
+    int     dirty;          // bool
+    char*   op;             // W or R
 } Address;
 
 typedef struct InvertedPageTable{
