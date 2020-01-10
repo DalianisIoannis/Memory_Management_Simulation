@@ -29,3 +29,5 @@ typedef struct statistics{
 } Stats;
 
 int virtual_memory(const int frames, const int references);
+
+void LRU(int, int, int, IPT*, long*, Address**);

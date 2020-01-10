@@ -7,7 +7,7 @@ void printStatistics(Stats* statisticsInfo){
 
 int virtual_memory(const int frames, const int references){
     long        decAddr, serial_num = 0;         
-    int         i, j, k, num_of_address_read, pageNum, empty_frame, min_ser, min_pos;
+    int         i, j, k, num_of_address_read, pageNum, empty_frame;
     char        *pageMod, *hexAdr, *token, *line = NULL, *line1 = NULL, *line2 = NULL;
     Address**   adr;
     size_t      len = 0;
@@ -103,40 +103,8 @@ int virtual_memory(const int frames, const int references){
             }
             i++;                            // if i don't find pageNum i returns equal to frames
         }
-
-        if( i==frames ){                                            // frame has not been found
-            if(empty_frame != -1){                                  // there is empty
-                free(InvTable->Addresses[empty_frame]);
-                (InvTable->Addresses[empty_frame]) = (*adr);
-                InvTable->Addresses[empty_frame]->isEmpty = 0;
-                InvTable->Addresses[empty_frame]->serial_number = serial_num++;
-                free(adr);
-            }
-            else{                                                   // there is no empty frame
-                min_ser = InvTable->Addresses[0]->serial_number;    // LRU replace find smallest serial num
-                min_pos = 0;
-                for(k=1; k<frames; k++){
-                    if(InvTable->Addresses[k]->serial_number < min_ser){
-                        min_ser = InvTable->Addresses[k]->serial_number;
-                        min_pos = k;
-                    }
-                }
-                free(InvTable->Addresses[min_pos]->op);
-                free(InvTable->Addresses[min_pos]);
-                (InvTable->Addresses[min_pos]) = (*adr);
-                InvTable->Addresses[min_pos]->isEmpty = 0;
-                InvTable->Addresses[min_pos]->serial_number = serial_num++;
-                // free( (*adr)->op );
-                // free( (*adr) );
-                free(adr);
-            }
-        }
-        else{                                                       // frame has been found
-            InvTable->Addresses[i]->serial_number = serial_num++;
-            free( (*adr)->op );
-            free( (*adr) );
-            free(adr);
-        }
+        
+        LRU(i, frames, empty_frame, InvTable, &serial_num, adr);
 
         free(pageMod);
         free(hexAdr);
@@ -154,13 +122,10 @@ int virtual_memory(const int frames, const int references){
             }
         }
 
-        if(num_of_address_read<limit){
+        if(num_of_address_read<limit){                              // read next line only if haven't reached limit
             read = getline( &line, &len, file_ref );
         }
     }
-
-
-
 
 
     for(i=0; i<frames; i++){
@@ -172,8 +137,7 @@ int virtual_memory(const int frames, const int references){
     printStatistics(statisticsInfo);
 
     // // // // // // // // // // // // // // // // // // // // // // // // //
-    // // // // // // // // // // // // // // // bzip.trace close and empty IPT
-    // // // // // // // // // // // // // // // // // // // // // // // // //
+    // // // // // // // // // // // // // // // close traces and free memory
     for(i=0; i<frames; i++){
         if(InvTable->Addresses[i]->isEmpty == 0){
             free(InvTable->Addresses[i]->op);
