@@ -39,7 +39,7 @@ void LRU(int frame_pos, int isEmpty, IPT* Table, long* ser_num, Address** adr){
 void WS(int frame_pos, int isEmpty, IPT* Table, long* ser_num, Address** adr, Wrk_Set* WSet){
     // check if new page Num is in IPT
     // we suppose IPT is our memory
-    int k, empty_window;
+    int k, empty_window, j, min_ser, rep_wind;
     if(Table->frames!=frame_pos){       // memory is not full - frame has not been found
         if(isEmpty!=-1){                // memory IPT is not full and pageNum not in Table
             // add new adr in IPT mem
@@ -47,7 +47,6 @@ void WS(int frame_pos, int isEmpty, IPT* Table, long* ser_num, Address** adr, Wr
             (Table->Addresses[isEmpty]) = (*adr);
             Table->Addresses[isEmpty]->isEmpty = 0;
             Table->Addresses[isEmpty]->serial_number = (*ser_num)++;
-            free(adr);
             // inform Working Set
             // find if pageNum is in Working Set
             k = 0;
@@ -62,15 +61,47 @@ void WS(int frame_pos, int isEmpty, IPT* Table, long* ser_num, Address** adr, Wr
                 k++;                            // if i don't find pageNum k returns equal to frames
             }
             if(k!=WSet->window_size){           // pageNum in WSet
-                return;
+                if(WSet->window_size==WSet->current_windows){   // all inserts
+                    // find and delete smallest serial
+                    min_ser = WSet->Addresses[0]->serial_number;
+                    rep_wind = 0;
+                    for(j=1; j<WSet->window_size; j++){
+                        if(WSet->Addresses[j]->serial_number<min_ser){
+                            min_ser = WSet->Addresses[j]->serial_number;
+                            rep_wind = j;
+                        }
+                    }
+                    // return;
+                }
             }
             else{                               // pageNum not in WSet
                 if(WSet->window_size==WSet->current_windows){   // all inserts
                     // page fault
                     // replace smallest signature with new adr
-                    return;
+                    min_ser = WSet->Addresses[0]->serial_number;
+                    rep_wind = 0;
+                    j = 1;
+                    while(j<WSet->window_size){
+                        if(WSet->Addresses[j]->serial_number<min_ser){
+                            min_ser = WSet->Addresses[j]->serial_number;
+                            rep_wind = j;
+                        }
+                        j++;
+                    }
+                    free(WSet->Addresses[rep_wind]->op);
+                    free(WSet->Addresses[rep_wind]);
+                    (WSet->Addresses[rep_wind]) = (*adr);
+                    WSet->Addresses[rep_wind]->isEmpty = 0;
+                    WSet->Addresses[rep_wind]->serial_number = (*ser_num)++;
+                    // free(adr);
+                    // return;
+                }
+                else{       // not all inserts are made
+                    WSet->Addresses[WSet->current_windows] = (*adr);
+                    WSet->current_windows++;
                 }
             }
+            free(adr);
             return;
         }
         else{                           // no empty memory
