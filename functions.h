@@ -19,6 +19,12 @@ typedef struct InvertedPageTable{
     Address** Addresses;
 } IPT;
 
+typedef struct working_set{
+    int current_windows;
+    int window_size;
+    Address** Addresses;
+} Wrk_Set;
+
 typedef struct statistics{
     long pageRequests;      // all requests regardless if the page is in IPT
     long pageFaults;        // pageNum not in IPT
@@ -28,6 +34,8 @@ typedef struct statistics{
     long pagesWrite; 
 } Stats;
 
-int virtual_memory(const int frames, const int references);
+int virtual_memory(const int, const int);
 
-void LRU(int, int, int, IPT*, long*, Address**);
+void LRU(int, int, IPT*, long*, Address**);
+
+void WS(int, int, IPT*, long*, Address**, Wrk_Set*);

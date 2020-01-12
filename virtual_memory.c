@@ -6,6 +6,7 @@ void printStatistics(Stats* statisticsInfo){
 }
 
 int virtual_memory(const int frames, const int references){
+    int         wind_size = frames-5;
     long        decAddr, serial_num = 0;         
     int         i, j, k, num_of_address_read, pageNum, empty_frame;
     char        *pageMod, *hexAdr, *token, *line = NULL, *line1 = NULL, *line2 = NULL;
@@ -14,6 +15,7 @@ int virtual_memory(const int frames, const int references){
     ssize_t     read;
     FILE        *file1, *file2, *file_ref;
     IPT*        InvTable;
+    Wrk_Set*    WSet;
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // statisticsInfo initialize values
     Stats*      statisticsInfo = malloc( sizeof(Stats) );
@@ -36,6 +38,23 @@ int virtual_memory(const int frames, const int references){
         return -1;
     }
     // // // // // // // // // // // // // // // // // // // // // // // // //
+    // // // // // // // // // // // // // // // read file lines
+    srand(time(NULL));                  // randomly choose first trace
+    if( rand() % 2 + 0 ==0 ){
+        printf("Starting with file bzip.trace.\n");
+        file_ref = file1;
+        line = line1;
+    }
+    else{
+        printf("Starting with file gcc.trace.\n");
+        file_ref = file2;
+        line = line2;
+    }
+
+    num_of_address_read = 0;
+    read = getline( &line, &len, file_ref );
+    int limit = references*3;
+    // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // IPT initialization
     InvTable = malloc( sizeof(IPT) );
     InvTable->frames = frames;
@@ -54,22 +73,24 @@ int virtual_memory(const int frames, const int references){
         InvTable->Addresses[i]->op = NULL;                      // no string
     }
     // // // // // // // // // // // // // // // // // // // // // // // // //
-    // // // // // // // // // // // // // // // read file lines
-    srand(time(NULL));                  // randomly choose first trace
-    if( rand() % 2 + 0 ==0 ){
-        printf("Starting with file bzip.trace.\n");
-        file_ref = file1;
-        line = line1;
+    // // // // // // // // // // // // // // // Working Set creation
+    WSet = malloc( sizeof(Wrk_Set) );
+    WSet->window_size = wind_size;
+    WSet->Addresses = malloc( wind_size*sizeof(Address*) );    // window_size: WSet size
+    if(WSet->Addresses==NULL){
+        fprintf(stderr, "Didn't allocate WSet Address array.\n");
+        return -1;
     }
-    else{
-        printf("Starting with file gcc.trace.\n");
-        file_ref = file2;
-        line = line2;
+    for(i=0; i<wind_size; i++){
+        WSet->Addresses[i] = malloc( sizeof(Address) );
+        if(WSet->Addresses[i]==NULL){
+            fprintf(stderr, "Didn't allocate WSet Address.\n");
+            return -1;
+        }
+        WSet->Addresses[i]->isEmpty = 1;                    // empty at first
+        WSet->Addresses[i]->op = NULL;                      // no string
     }
-
-    num_of_address_read = 0;
-    read = getline( &line, &len, file_ref );
-    int limit = references*3;
+    ////////////////////////////////////////////////////////////////
     while( read != -1 && num_of_address_read<limit ){
         // printf("file line is %s", line);
         token = strtok(line, " \t");            // address
@@ -103,8 +124,9 @@ int virtual_memory(const int frames, const int references){
             }
             i++;                            // if i don't find pageNum i returns equal to frames
         }
-        
-        LRU(i, frames, empty_frame, InvTable, &serial_num, adr);
+        // if i == frames, pageNum hasn't been found 
+        LRU(i, empty_frame, InvTable, &serial_num, adr);
+        // if use WS create working set outside of while
 
         free(pageMod);
         free(hexAdr);
@@ -145,8 +167,16 @@ int virtual_memory(const int frames, const int references){
         free(InvTable->Addresses[i]);
     }
     free(InvTable->Addresses);
-    free(statisticsInfo);
     free(InvTable);
+    for(i=0; i<wind_size; i++){
+        if(WSet->Addresses[i]->isEmpty == 0){
+            free(WSet->Addresses[i]->op);
+        }
+        free(WSet->Addresses[i]);
+    }
+    free(WSet->Addresses);
+    free(WSet);
+    free(statisticsInfo);
     free(line);
     fclose(file1);
     fclose(file2);
