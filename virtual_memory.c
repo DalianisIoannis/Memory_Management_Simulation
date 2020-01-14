@@ -5,9 +5,8 @@ void printStatistics(Stats* statisticsInfo){
     printf("Total page requests %ld\n", statisticsInfo->pageRequests);
 }
 
-int virtual_memory(const int frames, const int references){
-    int         wind_size = frames-5;
-    long        decAddr, serial_num = 0;         
+int virtual_memory(const int frames, const int references, const int window_size){
+    long        decAddr, IPT_serial_num = 0, WS_serial_num = 0;         
     int         i, j, k, num_of_address_read, pageNum, empty_frame;
     char        *pageMod, *hexAdr, *token, *line = NULL, *line1 = NULL, *line2 = NULL;
     Address**   adr;
@@ -53,11 +52,13 @@ int virtual_memory(const int frames, const int references){
 
     num_of_address_read = 0;
     read = getline( &line, &len, file_ref );
-    int limit = references*3;
+    // int limit = references*3;
+    int limit = 5;
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // IPT initialization
     InvTable = malloc( sizeof(IPT) );
     InvTable->frames = frames;
+    InvTable->current_frames = 0;
     InvTable->Addresses = malloc( frames*sizeof(Address*) );    // frames: IPT size
     if(InvTable->Addresses==NULL){
         fprintf(stderr, "Didn't allocate IPT Address array.\n");
@@ -75,34 +76,37 @@ int virtual_memory(const int frames, const int references){
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // Working Set creation
     WSet = malloc( sizeof(Wrk_Set) );
-    WSet->window_size = wind_size;
-    WSet->Addresses = malloc( wind_size*sizeof(Address*) );    // window_size: WSet size
-    if(WSet->Addresses==NULL){
+    WSet->window_size = window_size;
+    WSet->current_windows = 0;
+    WSet->entry = malloc( window_size*sizeof(WSentry*) );
+    if(WSet->entry==NULL){
         fprintf(stderr, "Didn't allocate WSet Address array.\n");
         return -1;
     }
-    for(i=0; i<wind_size; i++){
-        WSet->Addresses[i] = malloc( sizeof(Address) );
-        if(WSet->Addresses[i]==NULL){
+    for(i=0; i<window_size; i++){
+        WSet->entry[i] = malloc( sizeof(WSentry) );
+        if(WSet->entry[i]==NULL){
             fprintf(stderr, "Didn't allocate WSet Address.\n");
             return -1;
         }
-        WSet->Addresses[i]->isEmpty = 1;                    // empty at first
-        WSet->Addresses[i]->op = NULL;                      // no string
+        WSet->entry[i]->pageNum = -1;
+        // WSet->Addresses[i]->isEmpty = 1;                    // empty at first
+        // WSet->Addresses[i]->op = NULL;                      // no string
     }
     ////////////////////////////////////////////////////////////////
     while( read != -1 && num_of_address_read<limit ){
+    // while( read != -1 ){
         // printf("file line is %s", line);
-        token = strtok(line, " \t");            // address
-        hexAdr = malloc( (strlen(token)+1)*sizeof(char) );
+        token   = strtok(line, " \t");            // address
+        hexAdr  = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(hexAdr, token);
         decAddr = strtoul(hexAdr, NULL, 16);
         pageNum = decAddr / FRAMESIZE;
-        token = strtok(NULL, " \t\n");          // operation
+        token   = strtok(NULL, " \t\n");          // operation
         pageMod = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(pageMod, token);                 // pageMod is only W or R + \0
         // printf("hexAdr %s and pageMod %s\n", hexAdr, pageMod);
-        // printf("decAddr is %ld and pageNum %d\n", decAddr, pageNum);
+        printf("decAddr is %ld and pageNum %d\n", decAddr, pageNum);
 
 
         adr = malloc(sizeof(Address*));     // make address with the items taken
@@ -124,9 +128,17 @@ int virtual_memory(const int frames, const int references){
             }
             i++;                            // if i don't find pageNum i returns equal to frames
         }
-        // if i == frames, pageNum hasn't been found 
-        LRU(i, empty_frame, InvTable, &serial_num, adr);
+        // if i >= frames, pageNum hasn't been found 
+        // LRU(i, empty_frame, InvTable, &IPT_serial_num, adr);
+        // those two only if no lru called
+        WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
+        // free( (*adr)->op );
+        // free( (*adr) );
+        // 
         // if use WS create working set outside of while
+        // WS needs other serial number
+        // WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
+        free(adr);
 
         free(pageMod);
         free(hexAdr);
@@ -145,17 +157,20 @@ int virtual_memory(const int frames, const int references){
         }
 
         if(num_of_address_read<limit){                              // read next line only if haven't reached limit
+            printf("DIABASA GRAMMI\n");
             read = getline( &line, &len, file_ref );
         }
     }
-
+    printf("VGKE ME %d\n", num_of_address_read);
 
     for(i=0; i<frames; i++){
         if(InvTable->Addresses[i]->isEmpty == 0){
             printf("Entrance %d has pageNum %d and serial %ld\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
         }
     }
-
+    for(i=0; i<WSet->window_size; i++){
+        printf("TO WSET %d einai %d me signature %ld\n", i, WSet->entry[i]->pageNum, WSet->entry[i]->serial_number);
+    }
     printStatistics(statisticsInfo);
 
     // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -168,13 +183,10 @@ int virtual_memory(const int frames, const int references){
     }
     free(InvTable->Addresses);
     free(InvTable);
-    for(i=0; i<wind_size; i++){
-        if(WSet->Addresses[i]->isEmpty == 0){
-            free(WSet->Addresses[i]->op);
-        }
-        free(WSet->Addresses[i]);
+    for(i=0; i<window_size; i++){
+        free(WSet->entry[i]);
     }
-    free(WSet->Addresses);
+    free(WSet->entry);
     free(WSet);
     free(statisticsInfo);
     free(line);

@@ -16,13 +16,22 @@ typedef struct mem_addr{
 
 typedef struct InvertedPageTable{
     int frames;
+    int current_frames; // how many frames are used
     Address** Addresses;
 } IPT;
+
+typedef struct Working_Set_entry{
+    int     pageNum;
+    long    serial_number;
+} WSentry;
 
 typedef struct working_set{
     int current_windows;
     int window_size;
-    Address** Addresses;
+    // Address** Addresses;
+    // int isEmpty;
+    // int* pageNum;  // pageNum array empty with -1
+    WSentry** entry;
 } Wrk_Set;
 
 typedef struct statistics{
@@ -34,8 +43,10 @@ typedef struct statistics{
     long pagesWrite; 
 } Stats;
 
-int virtual_memory(const int, const int);
+int virtual_memory(const int, const int, const int);
 
 void LRU(int, int, IPT*, long*, Address**);
 
-void WS(int, int, IPT*, long*, Address**, Wrk_Set*);
+void WS(int, int, IPT*, long*, Address**, Wrk_Set*, long*); // first long IPTserial_num and second WSserial_num
+
+void WSet_Inserts(int, Wrk_Set*, Address**, long*, int);
