@@ -46,10 +46,20 @@ typedef struct statistics{
 } Stats;
 
 
-int virtual_memory(const int, const int, const int);
+int virtual_memory(const int, const int, const int, const int);
 
 void LRU(int, int, IPT*, long*, Address**);
 
 void WS(int, int, IPT*, long*, Address**, Wrk_Set*, long*); // 1st long IPTserial_num and 2nd WSserial_num
 
 void WSet_Inserts(int, Wrk_Set*, Address**, long*, int);
+
+int is_pageNum_in_WS(IPT* Table, const int table_frame, Wrk_Set* WSet, int* empty_window);
+
+void InsertWSet(const int window_place, Wrk_Set* WSet, Address** adr, long* WSserial_num);
+
+void RemoveWSet(const int window_place, Wrk_Set* WSet, Address** adr, long* WSserial_num);
+
+void InsertIPT(const int frame_place, IPT* Table, Address** adr, long* IPTserial_num);
+
+void RemoveIPT(const int frame_place, IPT* Table, Address** adr);

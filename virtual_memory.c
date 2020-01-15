@@ -5,9 +5,9 @@ void printStatistics(Stats* statisticsInfo){
     printf("Total page requests %ld\n", statisticsInfo->pageRequests);
 }
 
-int virtual_memory(const int frames, const int references, const int window_size){
+int virtual_memory(const int frames, const int references, const int window_size, const int total_references){
     long        decAddr, IPT_serial_num = 0, WS_serial_num = 0;         
-    int         i, j, k, num_of_address_read, pageNumber, empty_frame;
+    int         i, j, k, num_of_address_read, pageNumber, empty_frame, limit;
     char        *pageMod, *hexAdr, *token, *line = NULL, *line1 = NULL, *line2 = NULL;
     Address**   adr;
     size_t      len = 0;
@@ -18,12 +18,12 @@ int virtual_memory(const int frames, const int references, const int window_size
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // statisticsInfo initialize values
     Stats*      statisticsInfo = malloc( sizeof(Stats) );
-    statisticsInfo->pageFaults = 0;
-    statisticsInfo->pageRequests = 0;
-    statisticsInfo->pagesLoaded = 0;
-    statisticsInfo->pagesRead = 0;
-    statisticsInfo->pagesWrite = 0;
-    statisticsInfo->pagesReplaced = 0;
+    statisticsInfo->pageFaults      = 0;
+    statisticsInfo->pageRequests    = 0;
+    statisticsInfo->pagesLoaded     = 0;
+    statisticsInfo->pagesRead       = 0;
+    statisticsInfo->pagesWrite      = 0;
+    statisticsInfo->pagesReplaced   = 0;
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // open traces
     file1 = fopen("bzip.trace", "r");
@@ -47,10 +47,10 @@ int virtual_memory(const int frames, const int references, const int window_size
     }
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // IPT initialization
-    InvTable = malloc( sizeof(IPT) );
-    InvTable->frames = frames;
-    InvTable->current_frames = 0;
-    InvTable->Addresses = malloc( frames*sizeof(Address*) );    // frames: IPT size
+    InvTable            = malloc( sizeof(IPT) );
+    InvTable->frames    = frames;
+    InvTable->current_frames    = 0;
+    InvTable->Addresses         = malloc( frames*sizeof(Address*) );    // frames: IPT size
     if(InvTable->Addresses==NULL){
         fprintf(stderr, "Didn't allocate IPT Address array.\n");
         return -1;
@@ -61,17 +61,17 @@ int virtual_memory(const int frames, const int references, const int window_size
             fprintf(stderr, "Didn't allocate IPT Address.\n");
             return -1;
         }
-        InvTable->Addresses[i]->serial_number = -1;
-        InvTable->Addresses[i]->pageNumber = -1;
-        InvTable->Addresses[i]->isEmpty = 1;                    // empty at first
-        InvTable->Addresses[i]->op = NULL;                      // no string
+        InvTable->Addresses[i]->serial_number   = -1;
+        InvTable->Addresses[i]->pageNumber      = -1;
+        InvTable->Addresses[i]->isEmpty         = 1;            // empty at first
+        InvTable->Addresses[i]->op              = NULL;         // no string
     }
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // Working Set creation
-    WSet = malloc( sizeof(Wrk_Set) );
-    WSet->window_size = window_size;
-    WSet->current_windows = 0;
-    WSet->entry = malloc( window_size*sizeof(WSentry*) );
+    WSet                = malloc( sizeof(Wrk_Set) );
+    WSet->window_size   = window_size;
+    WSet->current_windows   = 0;
+    WSet->entry             = malloc( window_size*sizeof(WSentry*) );
     if(WSet->entry==NULL){
         fprintf(stderr, "Didn't allocate WSet Address array.\n");
         return -1;
@@ -82,16 +82,15 @@ int virtual_memory(const int frames, const int references, const int window_size
             fprintf(stderr, "Didn't allocate WSet Address.\n");
             return -1;
         }
-        WSet->entry[i]->pageNumber = -1;
-        WSet->entry[i]->serial_number = -1;
+        WSet->entry[i]->pageNumber      = -1;
+        WSet->entry[i]->serial_number   = -1;
         // WSet->Addresses[i]->isEmpty = 1;                    // empty at first
         // WSet->Addresses[i]->op = NULL;                      // no string
     }
     ////////////////////////////////////////////////////////////////
     num_of_address_read = 0;
+    limit = total_references;
     read = getline( &line, &len, file_ref );
-    // int limit = references*3;
-    int limit = 2;
     while( read != -1 && num_of_address_read<limit ){
     // while( read != -1 ){
         // printf("File line is %s", line);
@@ -104,13 +103,13 @@ int virtual_memory(const int frames, const int references, const int window_size
         pageMod = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(pageMod, token);                 // pageMod is only W or R + \0
         // printf("hexAdr %s and pageMod %s\n", hexAdr, pageMod);
-        printf("decAddr is %ld and pageNumber %d\n", decAddr, pageNumber);
+        printf("\ndecAddr is %ld and pageNumber %d\n", decAddr, pageNumber);
 
 
-        adr = malloc(sizeof(Address*));     // make address with the items taken
-        (*adr) = malloc( sizeof(Address) );
-        (*adr)->pageNumber = pageNumber;
-        (*adr)->op = malloc( (strlen(pageMod)+1) * sizeof(char) );
+        adr     = malloc(sizeof(Address*));     // make address with the items taken
+        (*adr)  = malloc( sizeof(Address) );
+        (*adr)->pageNumber  = pageNumber;
+        (*adr)->op          = malloc( (strlen(pageMod)+1) * sizeof(char) );
         strcpy( (*adr)->op, pageMod );
 
         statisticsInfo->pageRequests++;
@@ -126,22 +125,20 @@ int virtual_memory(const int frames, const int references, const int window_size
             }
             i++;                            // if i don't find pageNumber i returns equal to frames
         }
+        printf("first empty %d and i is %d\n", empty_frame, i);
         // if i >= frames, pageNumber hasn't been found 
         // LRU(i, empty_frame, InvTable, &IPT_serial_num, adr);
+        // WS needs other serial number
         WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
         free( (*adr)->op );
         free( (*adr) );
-        // WS needs other serial number
-        // WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
         free(adr);
 
 
         printf("\nAfter repetition %d:\n", num_of_address_read);
         printf("IPT frame:\n");
         for(i=0; i<frames; i++){
-            // if(InvTable->Addresses[i]->isEmpty == 0){
-                printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
-            // }
+            printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
         }
         printf("WSet windows:\n");
         for(i=0; i<WSet->window_size; i++){
