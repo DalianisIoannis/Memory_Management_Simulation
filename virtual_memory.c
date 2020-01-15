@@ -7,7 +7,7 @@ void printStatistics(Stats* statisticsInfo){
 
 int virtual_memory(const int frames, const int references, const int window_size){
     long        decAddr, IPT_serial_num = 0, WS_serial_num = 0;         
-    int         i, j, k, num_of_address_read, pageNum, empty_frame;
+    int         i, j, k, num_of_address_read, pageNumber, empty_frame;
     char        *pageMod, *hexAdr, *token, *line = NULL, *line1 = NULL, *line2 = NULL;
     Address**   adr;
     size_t      len = 0;
@@ -27,33 +27,24 @@ int virtual_memory(const int frames, const int references, const int window_size
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // open traces
     file1 = fopen("bzip.trace", "r");
-    if(file1==NULL){
-        fprintf(stderr, "Didn't open bzip.trace.\n");
-        return -1;
-    }
     file2 = fopen("gcc.trace", "r");
-    if(file2==NULL){
-        fprintf(stderr, "Didn't open gcc.trace.\n");
+    if(file1==NULL || file2==NULL){
+        fprintf(stderr, "Didn't open trace.\n");
         return -1;
     }
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // read file lines
     srand(time(NULL));                  // randomly choose first trace
     if( rand() % 2 + 0 ==0 ){
-        printf("Starting with file bzip.trace.\n");
+        printf("\nStarting with file bzip.trace.\n");
         file_ref = file1;
         line = line1;
     }
     else{
-        printf("Starting with file gcc.trace.\n");
+        printf("\nStarting with file gcc.trace.\n");
         file_ref = file2;
         line = line2;
     }
-
-    num_of_address_read = 0;
-    read = getline( &line, &len, file_ref );
-    // int limit = references*3;
-    int limit = 5;
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // // // // // // // // // // // // // // // IPT initialization
     InvTable = malloc( sizeof(IPT) );
@@ -70,6 +61,8 @@ int virtual_memory(const int frames, const int references, const int window_size
             fprintf(stderr, "Didn't allocate IPT Address.\n");
             return -1;
         }
+        InvTable->Addresses[i]->serial_number = -1;
+        InvTable->Addresses[i]->pageNumber = -1;
         InvTable->Addresses[i]->isEmpty = 1;                    // empty at first
         InvTable->Addresses[i]->op = NULL;                      // no string
     }
@@ -89,29 +82,34 @@ int virtual_memory(const int frames, const int references, const int window_size
             fprintf(stderr, "Didn't allocate WSet Address.\n");
             return -1;
         }
-        WSet->entry[i]->pageNum = -1;
+        WSet->entry[i]->pageNumber = -1;
+        WSet->entry[i]->serial_number = -1;
         // WSet->Addresses[i]->isEmpty = 1;                    // empty at first
         // WSet->Addresses[i]->op = NULL;                      // no string
     }
     ////////////////////////////////////////////////////////////////
+    num_of_address_read = 0;
+    read = getline( &line, &len, file_ref );
+    // int limit = references*3;
+    int limit = 2;
     while( read != -1 && num_of_address_read<limit ){
     // while( read != -1 ){
-        // printf("file line is %s", line);
+        // printf("File line is %s", line);
         token   = strtok(line, " \t");            // address
         hexAdr  = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(hexAdr, token);
         decAddr = strtoul(hexAdr, NULL, 16);
-        pageNum = decAddr / FRAMESIZE;
+        pageNumber = decAddr / FRAMESIZE;
         token   = strtok(NULL, " \t\n");          // operation
         pageMod = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(pageMod, token);                 // pageMod is only W or R + \0
         // printf("hexAdr %s and pageMod %s\n", hexAdr, pageMod);
-        printf("decAddr is %ld and pageNum %d\n", decAddr, pageNum);
+        printf("decAddr is %ld and pageNumber %d\n", decAddr, pageNumber);
 
 
         adr = malloc(sizeof(Address*));     // make address with the items taken
         (*adr) = malloc( sizeof(Address) );
-        (*adr)->pageNumber = pageNum;
+        (*adr)->pageNumber = pageNumber;
         (*adr)->op = malloc( (strlen(pageMod)+1) * sizeof(char) );
         strcpy( (*adr)->op, pageMod );
 
@@ -119,26 +117,37 @@ int virtual_memory(const int frames, const int references, const int window_size
 
         i = 0;
         empty_frame = -1;
-        while(i < frames){                  // where to put new address-does the pageNum already exist
+        while(i < frames){                  // where to put new address-does the pageNumber already exist
             if(InvTable->Addresses[i]->isEmpty == 1 && empty_frame == -1){   // first empty frame if exists
                 empty_frame = i;
             }
-            if(InvTable->Addresses[i]->isEmpty == 0 && InvTable->Addresses[i]->pageNumber == (*adr)->pageNumber){   // found pageNum in IPT
+            if(InvTable->Addresses[i]->isEmpty == 0 && InvTable->Addresses[i]->pageNumber == (*adr)->pageNumber){   // found pageNumber in IPT
                 break;
             }
-            i++;                            // if i don't find pageNum i returns equal to frames
+            i++;                            // if i don't find pageNumber i returns equal to frames
         }
-        // if i >= frames, pageNum hasn't been found 
+        // if i >= frames, pageNumber hasn't been found 
         // LRU(i, empty_frame, InvTable, &IPT_serial_num, adr);
-        // those two only if no lru called
         WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
-        // free( (*adr)->op );
-        // free( (*adr) );
-        // 
-        // if use WS create working set outside of while
+        free( (*adr)->op );
+        free( (*adr) );
         // WS needs other serial number
         // WS(i, empty_frame, InvTable, &IPT_serial_num, adr, WSet, &WS_serial_num);
         free(adr);
+
+
+        printf("\nAfter repetition %d:\n", num_of_address_read);
+        printf("IPT frame:\n");
+        for(i=0; i<frames; i++){
+            // if(InvTable->Addresses[i]->isEmpty == 0){
+                printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
+            // }
+        }
+        printf("WSet windows:\n");
+        for(i=0; i<WSet->window_size; i++){
+            printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, WSet->entry[i]->pageNumber, WSet->entry[i]->serial_number);
+        }
+
 
         free(pageMod);
         free(hexAdr);
@@ -157,23 +166,21 @@ int virtual_memory(const int frames, const int references, const int window_size
         }
 
         if(num_of_address_read<limit){                              // read next line only if haven't reached limit
-            printf("DIABASA GRAMMI\n");
             read = getline( &line, &len, file_ref );
         }
     }
-    printf("VGKE ME %d\n", num_of_address_read);
-
+    printf("IPT frames in the end:\n");
     for(i=0; i<frames; i++){
         if(InvTable->Addresses[i]->isEmpty == 0){
-            printf("Entrance %d has pageNum %d and serial %ld\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
+            printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, InvTable->Addresses[i]->pageNumber, InvTable->Addresses[i]->serial_number);
         }
     }
+    printf("WSet windows in the end:\n");
     for(i=0; i<WSet->window_size; i++){
-        printf("TO WSET %d einai %d me signature %ld\n", i, WSet->entry[i]->pageNum, WSet->entry[i]->serial_number);
+        printf("\tEntrance %d has pageNumber %d and serial %ld.\n", i, WSet->entry[i]->pageNumber, WSet->entry[i]->serial_number);
     }
     printStatistics(statisticsInfo);
-
-    // // // // // // // // // // // // // // // // // // // // // // // // //
+    printf("\n");
     // // // // // // // // // // // // // // // close traces and free memory
     for(i=0; i<frames; i++){
         if(InvTable->Addresses[i]->isEmpty == 0){
