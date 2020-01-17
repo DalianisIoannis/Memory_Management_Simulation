@@ -108,22 +108,21 @@ void WSet_Inserts(int window_pos, Wrk_Set* WSet, Address** adr, long* WSserial_n
 }
 
 void WS(int frame_pos, int isEmpty, IPT* Table, long* IPTserial_num, Address** adr, Wrk_Set* WSet, long* WSserial_num, Stats* statisticsInfo){
-    int empty_window, k, j, empty_frame, deleted, del;
+    int empty_window, k, j, empty_frame, deleted, del, remover;
     if(Table->frames != Table->current_frames){ // not full IPT
         if(Table->frames <= frame_pos){         // pageNumber not in IPT
             statisticsInfo->pageFaults++;
             InsertIPT(isEmpty, Table, adr, IPTserial_num); // isEmpty has the first empty frame
-            empty_window = -1;                  // check WS find if pageNumber is in Working Set
-            k = is_pageNum_in_WS(Table, isEmpty, WSet, &empty_window);
-            WSet_Inserts(k, WSet, adr, WSserial_num, empty_window);
+            remover = isEmpty;
         }
         else{                                   // pageNumber in IPT
             statisticsInfo->pagesFound++;
             Table->Addresses[frame_pos]->serial_number = (*IPTserial_num)++;
-            empty_window = -1;      // check WS find if pageNumber is in Working Set
-            k = is_pageNum_in_WS(Table, frame_pos, WSet, &empty_window);
-            WSet_Inserts(k, WSet, adr, WSserial_num, empty_window);
+            remover = frame_pos;
         }
+        empty_window = -1;      // check WS find if pageNumber is in Working Set
+        k = is_pageNum_in_WS(Table, remover, WSet, &empty_window);
+        WSet_Inserts(k, WSet, adr, WSserial_num, empty_window);
     }
     else{                           // IPT is full
         if(Table->frames <= frame_pos){         // pageNumber not in IPT

@@ -69,7 +69,7 @@ int virtual_memory(const char* repl_alg, const int frames, const int quantum, co
         pageMod = malloc( (strlen(token)+1)*sizeof(char) );
         strcpy(pageMod, token);                 // pageMod is operation W or R
         // printf("hexAdr %s and pageMod %s\n", hexAdr, pageMod);
-        printf("\ndecAddr is %ld, pageNumber %d, operation %s and pid %d\n", decAddr, pageNumber,pageMod ,pid);
+        printf("Address in decimal is %ld, pageNumber %d, operation %s and pid %d\n", decAddr, pageNumber,pageMod ,pid);
 
         adr = initAdr(pageNumber, pid, pageMod);
 

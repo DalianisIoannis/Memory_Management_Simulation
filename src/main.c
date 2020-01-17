@@ -23,13 +23,23 @@ int main(int argc, char** argv){
     if(strcmp(repl_alg,"WS")==0){
         if(argc<6){
             fprintf(stderr, "Usage: WS needs window size!\n");
+            free(repl_alg);        
             return -1;
         }
         else{
             window_size = atoi(argv[5]);
+            if(window_size<=0){
+                fprintf(stderr, "Usage: no argument can be <=0!\n");
+                free(repl_alg);        
+                return -1;
+            }
         }
     }
-
+    if(frames<=0 || quantum<=0 || total_references<=0){
+        fprintf(stderr, "Usage: no argument can be <=0!\n");
+        free(repl_alg);        
+        return -1;
+    }
     virtual_memory(repl_alg, frames, quantum,total_references, window_size);
 
     free(repl_alg);

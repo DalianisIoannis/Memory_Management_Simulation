@@ -11,6 +11,7 @@ void InsertIPT(const int frame_place, IPT* Table, Address** adr, long* IPTserial
     Table->Addresses[frame_place]->pageNumber       = (*adr)->pageNumber;
     Table->Addresses[frame_place]->serial_number    = (*IPTserial_num)++;
     Table->current_frames++;
+    return;
 }
 
 void RemoveIPT(const int frame_place, IPT* Table){
@@ -20,6 +21,7 @@ void RemoveIPT(const int frame_place, IPT* Table){
     Table->Addresses[frame_place]->serial_number    = -1;
     Table->Addresses[frame_place]->op               = NULL; // no string
     Table->current_frames--;
+    return;
 }
 
 int min_priorityIPT(IPT* Table, const int pid){ // if pid = -1 i don't care for priority
@@ -88,6 +90,7 @@ void freeIPT(IPT* InvTable){
     }
     free(InvTable->Addresses);
     free(InvTable);
+    return;
 }
 
 int is_pageNum_in_IPT(IPT* InvTable, int* empty_frame, Address** adr){

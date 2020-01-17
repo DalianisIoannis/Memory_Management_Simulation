@@ -13,6 +13,7 @@ Stats* stats_init(){
 }
 
 void printStatistics(Stats* statisticsInfo){
+    printf("Simulation Statistics!!\n");
     printf("Page requests %ld.\n", statisticsInfo->pageRequests);
     printf("Page faults %ld.\n", statisticsInfo->pageFaults); 
     printf("Pages loaded back to disk %ld.\n", statisticsInfo->pagesLoaded);
@@ -20,4 +21,5 @@ void printStatistics(Stats* statisticsInfo){
     printf("Pages removed from IPT %ld.\n", statisticsInfo->pagesReplaced);
     printf("Reads %ld.\n", statisticsInfo->pagesRead);
     printf("Writes %ld.\n", statisticsInfo->pagesWrite);
+    return;
 }
