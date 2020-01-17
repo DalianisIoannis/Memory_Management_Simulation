@@ -23,30 +23,11 @@ an h mnhmh den einai gemati dld den einai gemato to IPT
 
 
 allios an h mnhmh einai gemati dld einai gemato to IPT
-	diagrafi apo IPT olon ton page pou den einai sto WS
+	an den yparxei sto IPT
+		page fault
+		delete pages of WS not in IPT
 
-	meta to kainourio page
-	an to neo pageNum yparxei idi sto IPT
-		de kano kati
+		antikathisto me pagenum min priority idiou pid
 	allios
-		an yparxei keno
-			to vazo ekei
-		allios
-			antikathisto me mikrotero
-			
-	gia to WS
-	an to page einai mesa 
-		de kano kati
-	allios
-		an exei keno
-			to vazo
-		allios 
-			antikathisto to min
-	
-
-
-
-IPT 		= 2
-sinolo trace 	= 2
-trace kathena 	= 1
-window		= 1
+		delete pages of WS not in IPT
+	elegxos WSet		
